@@ -430,6 +430,8 @@ function getCardPrice(card) {
     return parsePrice(priceText);
 }
 
+const PRODUCTS_PER_PAGE = 40;
+
 function initProductControls() {
     const grids = document.querySelectorAll('.product-grid');
     if (!grids.length) return;
@@ -476,21 +478,71 @@ function initProductControls() {
         emptyMessage.style.display = 'none';
         grid.insertAdjacentElement('afterend', emptyMessage);
 
+        const pagination = document.createElement('div');
+        pagination.className = 'product-pagination';
+        emptyMessage.insertAdjacentElement('afterend', pagination);
+
         const searchInput = controls.querySelector(`#product-search-${index}`);
         const sortSelect = controls.querySelector(`#product-sort-${index}`);
 
-        const applyFiltersAndSort = () => {
+        let currentPage = 1;
+
+        const renderPaginationControls = (totalPages) => {
+            pagination.innerHTML = '';
+            if (totalPages <= 1) return;
+
+            const makeButton = (label, page, { disabled = false, active = false } = {}) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'pagination-btn' + (active ? ' active' : '');
+                btn.textContent = label;
+                btn.disabled = disabled;
+                btn.addEventListener('click', () => {
+                    currentPage = page;
+                    renderPage();
+                    controls.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+                return btn;
+            };
+
+            const makeEllipsis = () => {
+                const span = document.createElement('span');
+                span.className = 'pagination-ellipsis';
+                span.textContent = '…';
+                return span;
+            };
+
+            pagination.appendChild(makeButton('‹', currentPage - 1, { disabled: currentPage === 1 }));
+
+            const maxButtons = 7;
+            let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+            let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+            startPage = Math.max(1, endPage - maxButtons + 1);
+
+            if (startPage > 1) {
+                pagination.appendChild(makeButton('1', 1, { active: currentPage === 1 }));
+                if (startPage > 2) pagination.appendChild(makeEllipsis());
+            }
+
+            for (let page = startPage; page <= endPage; page += 1) {
+                pagination.appendChild(makeButton(String(page), page, { active: page === currentPage }));
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) pagination.appendChild(makeEllipsis());
+                pagination.appendChild(makeButton(String(totalPages), totalPages, { active: currentPage === totalPages }));
+            }
+
+            pagination.appendChild(makeButton('›', currentPage + 1, { disabled: currentPage === totalPages }));
+        };
+
+        const renderPage = () => {
             const query = normalizeText(searchInput.value);
-            let visibleCount = 0;
-
-            cards.forEach(card => {
-                const matches = !query || card.dataset.searchText.includes(query);
-                card.style.display = matches ? '' : 'none';
-                if (matches) visibleCount += 1;
-            });
-
             const sortValue = sortSelect.value;
-            const sorted = [...cards].sort((a, b) => {
+
+            const matched = cards.filter(card => !query || card.dataset.searchText.includes(query));
+
+            matched.sort((a, b) => {
                 if (sortValue === 'price-asc') {
                     return getCardPrice(a) - getCardPrice(b);
                 }
@@ -506,12 +558,33 @@ function initProductControls() {
                 return Number(a.dataset.originalIndex) - Number(b.dataset.originalIndex);
             });
 
-            sorted.forEach(card => grid.appendChild(card));
-            emptyMessage.style.display = visibleCount === 0 ? 'block' : 'none';
+            const totalPages = Math.max(1, Math.ceil(matched.length / PRODUCTS_PER_PAGE));
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            const startIdx = (currentPage - 1) * PRODUCTS_PER_PAGE;
+            const pageCards = matched.slice(startIdx, startIdx + PRODUCTS_PER_PAGE);
+            const pageCardsSet = new Set(pageCards);
+
+            cards.forEach(card => {
+                card.style.display = pageCardsSet.has(card) ? '' : 'none';
+            });
+            pageCards.forEach(card => grid.appendChild(card));
+
+            emptyMessage.style.display = matched.length === 0 ? 'block' : 'none';
+            renderPaginationControls(totalPages);
         };
 
-        searchInput.addEventListener('input', applyFiltersAndSort);
-        sortSelect.addEventListener('change', applyFiltersAndSort);
+        searchInput.addEventListener('input', () => {
+            currentPage = 1;
+            renderPage();
+        });
+        sortSelect.addEventListener('change', () => {
+            currentPage = 1;
+            renderPage();
+        });
+
+        renderPage();
     });
 }
 
