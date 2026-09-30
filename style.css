@@ -372,11 +372,6 @@ header {
     font-size: 1rem;
     color: #666;
 }
-.price-pix {
-    font-size: 0.8rem;
-    color: #2f7a3d;
-    font-weight: 600;
-}
 
 /* Ajuste específico no quadro do produto */
 .product-info .price-info {
@@ -488,14 +483,6 @@ header {
 }
 .product-modal-price {
     font-size: 1.05rem; font-weight: 600; color: #777;
-}
-.product-modal-price--original {
-    text-decoration: line-through;
-}
-.product-modal-price-pix {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #2f7a3d;
 }
 .product-modal-desc {
     color: #666; line-height: 1.6; margin-bottom: 20px; font-size: 1.4rem;

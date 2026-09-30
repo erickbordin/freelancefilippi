@@ -3,6 +3,7 @@
 // 1. Inicialização
 let cart = JSON.parse(localStorage.getItem('filippiCart')) || [];
 const PRICE_ADJUSTMENT = -0.0;
+const INSTALLMENT_COUNT = 5;
 let priceAdjustmentApplied = false;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -125,15 +126,12 @@ function checkoutWhatsApp() {
     });
     
     // Calcular valores
-    const totalPixValue = total * 0.90; // 10% de desconto no PIX
-    const installmentValue = (total / 6).toFixed(2).replace('.', ',');
+    const installmentValue = (total / INSTALLMENT_COUNT).toFixed(2).replace('.', ',');
     const totalFormatted = total.toFixed(2).replace('.', ',');
-    const totalPixFormatted = totalPixValue.toFixed(2).replace('.', ',');
-    
+
     message += `\n*TOTAL: R$ ${totalFormatted}*`;
     message += `\n\n💰 *Opções de Pagamento:*`;
-    message += `\n• PIX (10% desconto): R$ ${totalPixFormatted}`;
-    message += `\n• Parcelado s/ juros: 6x de R$ ${installmentValue}`;
+    message += `\n• Parcelado s/ juros: até ${INSTALLMENT_COUNT}x de R$ ${installmentValue}`;
     
     const phoneNumber = "51992986748"; 
     window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
@@ -210,8 +208,7 @@ function injectProductModalHTML() {
                 <div class="product-modal-info">
                     <h3 id="product-modal-title"></h3>
                     <div class="product-modal-price-row">
-                        <span id="product-modal-price" class="product-modal-price product-modal-price--original"></span>
-                        <span id="product-modal-price-pix" class="product-modal-price-pix"></span>
+                        <span id="product-modal-price" class="product-modal-price"></span>
                     </div>
                     <div id="product-modal-price-info" class="price-info"></div>
                     <p id="product-modal-desc" class="product-modal-desc">Banhado a ouro 18k.</p>
@@ -339,34 +336,26 @@ function formatPrice(value) {
 }
 
 function buildPriceInfoText(price) {
-    const installment = formatPrice(price / 6);
+    const installment = formatPrice(price / INSTALLMENT_COUNT);
     return {
-        installmentText: `6x de ${installment} sem juros`,
-        pixText: '10% OFF NO PIX'
+        installmentText: `até ${INSTALLMENT_COUNT}x de ${installment} sem juros`
     };
 }
 
 function updatePriceInfoElement(container, price) {
     if (!container) return;
-    const { installmentText, pixText } = buildPriceInfoText(price);
+    const { installmentText } = buildPriceInfoText(price);
 
     let installmentEl = container.querySelector('.price-installments');
-    let pixEl = container.querySelector('.price-pix');
+    const pixEl = container.querySelector('.price-pix');
+    if (pixEl) pixEl.remove();
 
     if (!installmentEl) {
         installmentEl = document.createElement('span');
         installmentEl.className = 'price-installments';
         container.appendChild(installmentEl);
     }
-
-    if (!pixEl) {
-        pixEl = document.createElement('span');
-        pixEl.className = 'price-pix';
-        container.appendChild(pixEl);
-    }
-
     installmentEl.textContent = installmentText;
-    pixEl.textContent = pixText;
 }
 
 function updateAllPriceInfos() {
@@ -396,14 +385,8 @@ function updateModalPriceInfo(price) {
 
 function updateModalPriceRow(price, priceText) {
     const originalEl = document.getElementById('product-modal-price');
-    const pixEl = document.getElementById('product-modal-price-pix');
-    if (!originalEl || !pixEl) return;
-
-    const originalText = priceText || formatPrice(price || 0);
-    const pixPrice = price ? price * 0.9 : 0;
-
-    originalEl.textContent = originalText;
-    pixEl.textContent = `${formatPrice(pixPrice)} no Pix`;
+    if (!originalEl) return;
+    originalEl.textContent = priceText || formatPrice(price || 0);
 }
 
 function normalizeText(text) {
