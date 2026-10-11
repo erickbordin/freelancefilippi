@@ -6,7 +6,12 @@ const PRICE_ADJUSTMENT = -0.0;
 const INSTALLMENT_COUNT = 5;
 let priceAdjustmentApplied = false;
 
+const ADMIN_SESSION_KEY = 'filippiAdmin';
+const DRAFT_KEY = 'filippiRascunho';
+const CATALOG_PUBLISHED_KEY = 'filippiCatalogoPublicado';
+
 document.addEventListener('DOMContentLoaded', () => {
+    applyCatalog();
     updateCartCount();
     injectCartHTML();
     initProductModal();
@@ -14,7 +19,153 @@ document.addEventListener('DOMContentLoaded', () => {
     updateAllPriceInfos();
     initAddToCartOverride();
     initProductControls();
+    initAdminEntry();
 });
+
+function readStoredJSON(key) {
+    try {
+        return JSON.parse(localStorage.getItem(key));
+    } catch (error) {
+        return null;
+    }
+}
+
+function currentPageKey() {
+    const file = decodeURIComponent(location.pathname.split('/').pop() || '');
+    return file.replace(/\.html$/, '') || 'index';
+}
+
+function isAdminLogged() {
+    const session = readStoredJSON(ADMIN_SESSION_KEY);
+    return Boolean(session && session.exp > Date.now());
+}
+
+function getPublishedCatalog() {
+    const base = window.CATALOGO || { versao: 0, paginas: {} };
+    const published = readStoredJSON(CATALOG_PUBLISHED_KEY);
+    return published && published.versao > (base.versao || 0) ? published : base;
+}
+
+function getPageProducts(catalog) {
+    return (catalog && catalog.paginas && catalog.paginas[currentPageKey()]) || {};
+}
+
+function getCatalogEntry(ref) {
+    const draft = getPageProducts(readStoredJSON(DRAFT_KEY));
+    return draft[ref] || getPageProducts(getPublishedCatalog())[ref] || null;
+}
+
+function getCardId(card) {
+    return card.querySelector('.product-info')?.id || '';
+}
+
+function applyCatalog() {
+    const grid = document.querySelector('.product-grid');
+    if (!grid) return;
+
+    const adminMode = isAdminLogged();
+    const products = { ...getPageProducts(getPublishedCatalog()) };
+    if (adminMode) Object.assign(products, getPageProducts(readStoredJSON(DRAFT_KEY)));
+
+    const cardsById = new Map();
+    grid.querySelectorAll('.product-card').forEach(card => {
+        const id = getCardId(card);
+        if (id) cardsById.set(id, card);
+    });
+
+    Object.entries(products).forEach(([ref, data]) => {
+        let card = cardsById.get(ref);
+        if (!card) {
+            if (!data.novo) return;
+            card = createProductCard(ref);
+            grid.prepend(card);
+        }
+        applyProductData(card, data);
+        if (data.oculto && !adminMode) card.remove();
+    });
+}
+
+function createProductCard(ref) {
+    const card = document.createElement('div');
+    card.className = 'product-card';
+    card.innerHTML = `
+        <div class="img-container-black">
+            <img alt="">
+            <button class="btn-add-cart">Adicionar</button>
+        </div>
+        <div class="product-info">
+            <h3></h3>
+            <span class="price"></span>
+        </div>
+    `;
+    card.querySelector('.product-info').id = ref;
+    return card;
+}
+
+function applyProductData(card, data) {
+    const titleEl = card.querySelector('.product-info h3');
+    const priceEl = card.querySelector('.product-info .price');
+    if (data.nome && titleEl) titleEl.textContent = data.nome;
+    if (typeof data.preco === 'number' && priceEl) priceEl.textContent = formatPrice(data.preco);
+    if (data.imagem) setCardImage(card, data.imagem, data.nome || getCardTitle(card));
+    card.classList.toggle('product-hidden', Boolean(data.oculto));
+}
+
+function setCardImage(card, src, alt) {
+    const container = card.querySelector('.img-container-black');
+    if (!container) return;
+    container.querySelector('.img-carousel')?.remove();
+    let img = container.querySelector(':scope > img');
+    if (!img) {
+        img = document.createElement('img');
+        container.prepend(img);
+    }
+    img.src = src;
+    img.alt = alt;
+}
+
+function refreshCardDerivedData(card) {
+    const priceEl = card.querySelector('.product-info .price');
+    const price = parsePrice(priceEl ? priceEl.textContent : '');
+    card.dataset.adjustedPrice = price.toFixed(2);
+    card.dataset.productName = getCardTitle(card);
+    card.dataset.searchText = normalizeText(`${getCardTitle(card)} ${getCardRef(card)}`);
+
+    let infoEl = card.querySelector('.price-info');
+    if (!infoEl && priceEl) {
+        infoEl = document.createElement('div');
+        infoEl.className = 'price-info';
+        priceEl.insertAdjacentElement('afterend', infoEl);
+    }
+    if (infoEl && price) updatePriceInfoElement(infoEl, price);
+}
+
+function initAdminEntry() {
+    const footerBottom = document.querySelector('.footer-bottom');
+    if (footerBottom) {
+        const link = document.createElement('a');
+        link.href = '#';
+        link.className = 'footer-manage';
+        link.textContent = 'gerenciar';
+        link.addEventListener('click', event => {
+            event.preventDefault();
+            loadAdmin();
+        });
+        footerBottom.appendChild(link);
+    }
+    if (isAdminLogged()) loadAdmin();
+}
+
+function loadAdmin() {
+    if (window.FilippiAdmin) {
+        window.FilippiAdmin.open();
+        return;
+    }
+    const script = document.createElement('script');
+    script.type = 'module';
+    script.src = 'admin.js';
+    document.body.appendChild(script);
+}
 
 // 2. Menu Mobile (NOVO)
 function toggleMenu() {

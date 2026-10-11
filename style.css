@@ -218,6 +218,22 @@ header {
 .footer-section h3 { color: #fff; font-weight: 500; margin-bottom: 10px; }
 .footer-section a { color: inherit; }
 .footer-bottom { margin-top: 20px; color: #b3b3b3; }
+.footer-manage {
+    display: inline-block;
+    margin-top: 14px;
+    padding-bottom: 3px;
+    font-family: var(--font-main);
+    font-size: 0.6rem;
+    letter-spacing: 0.3em;
+    padding-left: 0.3em;
+    text-transform: uppercase;
+    color: #555;
+    text-decoration: none;
+    background: linear-gradient(var(--gold), var(--gold)) no-repeat center bottom / 0 1px;
+    transition: color 0.3s ease, background-size 0.4s ease;
+}
+.footer-manage:hover,
+.footer-manage:focus-visible { color: var(--gold); background-size: 100% 1px; outline: none; }
 
 .btn-primary {
     background: transparent; color: var(--white);
