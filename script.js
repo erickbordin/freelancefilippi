@@ -32,7 +32,7 @@ function readStoredJSON(key) {
 
 function currentPageKey() {
     const file = decodeURIComponent(location.pathname.split('/').pop() || '');
-    return file.replace(/\.html$/, '') || 'index';
+    return file.replace(/\.html$/, '').toLowerCase() || 'index';
 }
 
 function isAdminLogged() {

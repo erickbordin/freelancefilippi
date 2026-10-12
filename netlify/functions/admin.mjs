@@ -2,8 +2,8 @@ import { getStore } from '@netlify/blobs';
 import { ADMIN_EMAIL, ADMIN_SENHA } from '../../credenciais.js';
 
 const PAGINAS = new Set([
-    'aneisFem', 'aneisMasc', 'braceletes', 'brincos', 'colares', 'correntes',
-    'escapularios', 'pingentes', 'pulseiras', 'pulseirasFem', 'tornozeleiras'
+    'aneisfem', 'aneismasc', 'braceletes', 'brincos', 'colares', 'correntes',
+    'escapularios', 'pingentes', 'pulseiras', 'pulseirasfem', 'tornozeleiras'
 ]);
 const IMAGEM_MAX_BYTES = 3 * 1024 * 1024;
 const DATA_URL = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/;
